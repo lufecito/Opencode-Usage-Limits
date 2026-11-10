@@ -1,6 +1,87 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { readActiveGoUsage } from "../src/service.ts"
+import { readActiveGoUsage, readActiveOpenAIUsage } from "../src/service.ts"
+
+const openAIPayload = {
+  rate_limit: {
+    primary_window: { used_percent: 10, limit_window_seconds: 18_000, reset_at: 1_800_000_000 },
+    secondary_window: { used_percent: 20, limit_window_seconds: 604_800, reset_at: 1_800_600_000 },
+  },
+}
+
+describe("readActiveOpenAIUsage", () => {
+  it("resolves only the active OpenAI connection", async () => {
+    const calls: string[] = []
+    const result = await readActiveOpenAIUsage({
+      integration: {
+        connection: {
+          active: async (id) => {
+            calls.push(`active:${id}`)
+            return { id: "connection", integrationID: "openai" }
+          },
+          resolve: async (connection) => {
+            calls.push(`resolve:${connection.integrationID}`)
+            return { type: "oauth", access: "secret-access-token" }
+          },
+        },
+      },
+      fetchImpl: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => openAIPayload,
+      }),
+    })
+
+    assert.deepEqual(calls, ["active:openai", "resolve:openai"])
+    assert.equal(result.status, "ready")
+    assert.equal(JSON.stringify(result).includes("secret-access-token"), false)
+  })
+
+  it("does not resolve or fetch when OpenAI is disconnected", async () => {
+    let resolved = false
+    let fetched = false
+    const result = await readActiveOpenAIUsage({
+      integration: {
+        connection: {
+          active: async () => undefined,
+          resolve: async () => {
+            resolved = true
+            return undefined
+          },
+        },
+      },
+      fetchImpl: async () => {
+        fetched = true
+        return { ok: true, status: 200, json: async () => openAIPayload }
+      },
+    })
+
+    assert.equal(resolved, false)
+    assert.equal(fetched, false)
+    assert.deepEqual(result, {
+      status: "unavailable",
+      message: "Connect OpenAI with ChatGPT to view subscription limits.",
+      windows: [],
+    })
+  })
+
+  it("fails safely when an active connection cannot resolve credentials", async () => {
+    const result = await readActiveOpenAIUsage({
+      integration: {
+        connection: {
+          active: async () => ({ id: "connection", integrationID: "openai" }),
+          resolve: async () => undefined,
+        },
+      },
+    })
+
+    assert.deepEqual(result, {
+      status: "unavailable",
+      message: "OpenAI credentials are unavailable. Sign in again.",
+      windows: [],
+    })
+  })
+})
 
 const goPayload = {
   usage: {

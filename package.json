@@ -1,7 +1,7 @@
 {
   "name": "opencode-usage-limits",
   "version": "0.1.0",
-  "description": "OpenCode Go usage limits in the OpenCode sidebar",
+  "description": "OpenCode Go and OpenAI ChatGPT usage limits in the OpenCode sidebar",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
