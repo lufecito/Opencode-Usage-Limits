@@ -86,6 +86,31 @@ describe("normalizeOpenAI", () => {
         { id: "secondary", label: "Weekly", usedPercent: 7, limited: false, resetsAt: 1_800_600_000_000 },
       ],
     })
+
+    const byID = normalizeOpenAI({
+      rate_limits_by_limit_id: {
+        codex: {
+          primary_window: { used_percent: 10, limit_window_seconds: 18_000, reset_at: 1_800_000_000 },
+        },
+      },
+    })
+    assert.equal(byID.status, "ready")
+    assert.deepEqual(byID.windows, [
+      { id: "primary", label: "5 hours", usedPercent: 10, limited: false, resetsAt: 1_800_000_000_000 },
+    ])
+  })
+
+  it("keeps the limit boundary deterministic", () => {
+    const at = (usedPercent: number) =>
+      normalizeOpenAI({
+        rate_limit: {
+          primary_window: { used_percent: usedPercent, limit_window_seconds: 18_000, reset_at: 1_800_000_000 },
+        },
+      }).windows[0]
+
+    assert.equal(at(0).limited, false)
+    assert.equal(at(99.9).limited, false)
+    assert.equal(at(100).limited, true)
   })
 
   it("rejects payloads without windows and out-of-range percentages", () => {
@@ -127,7 +152,11 @@ describe("readOpenAIUsage", () => {
   it("sends the OAuth token only to the fixed usage endpoint with the account id", async () => {
     let request: { url: string; headers: Record<string, string> } | undefined
     const result = await readOpenAIUsage({
-      credential: { type: "oauth", access },
+      credential: {
+        type: "oauth",
+        access,
+        metadata: { url: "https://evil.example/", endpoint: "https://evil.example/usage" },
+      },
       fetchImpl: async (url, init) => {
         request = { url, headers: init.headers }
         return response(usagePayload)
@@ -168,7 +197,7 @@ describe("readOpenAIUsage", () => {
     })
     assert.deepEqual(unauthorized, {
       status: "unavailable",
-      message: "ChatGPT authentication expired. Sign in to OpenAI again.",
+      message: "ChatGPT rejected the credential. Sign in to OpenAI again with the legacy Codex login.",
       windows: [],
     })
 
