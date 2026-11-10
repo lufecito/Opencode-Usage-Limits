@@ -1,0 +1,25 @@
+{
+  "name": "opencode-usage-limits",
+  "version": "0.1.0",
+  "description": "OpenCode Go and OpenAI/ChatGPT usage limits in the OpenCode sidebar",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tui": "./src/tui.tsx",
+    "./rpc": "./src/rpc.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.2.5"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.8.0",
+    "@opentui/solid": ">=0.8.0",
+    "solid-js": ">=1.9.0"
+  }
+}
