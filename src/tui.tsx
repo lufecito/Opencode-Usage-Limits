@@ -1,6 +1,6 @@
 import { For, Show, createSignal } from "solid-js"
 import { Plugin } from "@opencode/plugin/tui"
-import { errorUsage, normalizeGo, type UsageResult } from "./normalize.ts"
+import { errorUsage, type UsageResult } from "./normalize.ts"
 import { UsageLimitsRpc } from "./rpc.ts"
 
 const REFRESH_INTERVAL_MS = 60_000
@@ -57,11 +57,11 @@ export default Plugin.define({
 
     const loadGo = async () => {
       try {
-        const response = await context.client.experimental.usage.limits(
-          { location },
-          { signal: controller.signal },
+        const usage = await context.client.rpc(UsageLimitsRpc).go(
+          {},
+          { location, signal: controller.signal },
         )
-        setGo(normalizeGo(response.data))
+        setGo(usage)
       } catch {
         if (!controller.signal.aborted) {
           setGo(errorUsage("Could not load OpenCode Go limits."))

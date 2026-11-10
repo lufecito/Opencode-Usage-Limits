@@ -1,52 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { normalizeGo, normalizeOpenAI } from "../src/normalize.ts"
-
-describe("normalizeGo", () => {
-  it("maps rolling, weekly, and monthly consumption and reset times", () => {
-    const result = normalizeGo({
-      workspace: { id: "workspace", usageURL: "https://example.invalid" },
-      go: {
-        rolling: { percent: 25, limited: false, resetsAt: 1_800_000_000_000 },
-        weekly: { percent: 50, limited: false, resetsAt: 1_800_100_000_000 },
-        monthly: { percent: 100, limited: true, resetsAt: 1_800_200_000_000 },
-      },
-      budgets: [],
-    })
-
-    assert.deepEqual(result, {
-      status: "ready",
-      message: null,
-      windows: [
-        { id: "rolling", label: "5 hours", usedPercent: 25, limited: false, resetsAt: 1_800_000_000_000 },
-        { id: "weekly", label: "Weekly", usedPercent: 50, limited: false, resetsAt: 1_800_100_000_000 },
-        { id: "monthly", label: "Monthly", usedPercent: 100, limited: true, resetsAt: 1_800_200_000_000 },
-      ],
-    })
-  })
-
-  it("explains when no Console workspace is signed in", () => {
-    assert.deepEqual(normalizeGo(null), {
-      status: "unavailable",
-      message: "Sign in to an OpenCode Console workspace to view Go limits.",
-      windows: [],
-    })
-  })
-
-  it("does not invent meters when Go is absent or malformed", () => {
-    const missing = normalizeGo({ workspace: { id: "workspace", usageURL: "" }, budgets: [] })
-    assert.equal(missing.status, "unavailable")
-    assert.deepEqual(missing.windows, [])
-
-    const malformed = normalizeGo({
-      workspace: { id: "workspace", usageURL: "" },
-      go: { rolling: { percent: "25", limited: false, resetsAt: 1_800_000_000_000 } },
-      budgets: [],
-    })
-    assert.equal(malformed.status, "error")
-    assert.deepEqual(malformed.windows, [])
-  })
-})
+import { normalizeOpenAI } from "../src/normalize.ts"
 
 describe("normalizeOpenAI", () => {
   it("maps primary and secondary Codex snapshots without adding a monthly meter", () => {

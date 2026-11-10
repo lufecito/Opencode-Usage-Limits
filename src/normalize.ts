@@ -16,8 +16,14 @@ export type UsageResult = {
 
 type UnknownRecord = Record<string, unknown>
 
-const INVALID_OPENCODE = "OpenCode returned an unsupported usage response."
+const INVALID_GO = "OpenCode Go returned an unsupported usage response."
 const INVALID_OPENAI = "OpenAI returned an unsupported usage response."
+
+const GO_WINDOWS = [
+  ["rolling", "5 hours"],
+  ["weekly", "Weekly"],
+  ["monthly", "Monthly"],
+] as const
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -29,8 +35,11 @@ function percent(value: unknown): number | undefined {
     : undefined
 }
 
-function milliseconds(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null
+function isoMilliseconds(value: unknown): number | null | undefined {
+  if (value === undefined || value === null) return null
+  if (typeof value !== "string") return undefined
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : undefined
 }
 
 export function errorUsage(message: string): UsageResult {
@@ -41,51 +50,40 @@ export function unavailableUsage(message: string): UsageResult {
   return { status: "unavailable", message, windows: [] }
 }
 
-function goWindow(data: UnknownRecord, id: string, label: string): UsageWindow | null {
-  if (!isRecord(data.go)) return null
-  const raw = data.go[id]
-  if (raw === undefined) return null
+function goWindow(raw: unknown, id: string, label: string): UsageWindow | null {
   if (!isRecord(raw)) return null
 
   const usedPercent = percent(raw.percent)
-  if (usedPercent === undefined || typeof raw.limited !== "boolean") return null
+  if (usedPercent === undefined) return null
+
+  const resetsAt = isoMilliseconds(raw.resetsAt)
+  if (resetsAt === undefined) return null
 
   return {
     id,
     label,
     usedPercent,
-    limited: raw.limited,
-    resetsAt: milliseconds(raw.resetsAt),
+    limited: usedPercent >= 100 || raw.status === "rate-limited",
+    resetsAt,
   }
 }
 
-export function normalizeGo(data: unknown): UsageResult {
-  if (data === null || data === undefined) {
-    return unavailableUsage("Sign in to an OpenCode Console workspace to view Go limits.")
-  }
-  if (!isRecord(data)) return errorUsage(INVALID_OPENCODE)
-  if (data.go === undefined) {
-    return unavailableUsage("OpenCode Go limits are not available for this workspace.")
-  }
-  if (!isRecord(data.go)) return errorUsage(INVALID_OPENCODE)
+export function normalizeGoUsage(payload: unknown): UsageResult {
+  if (!isRecord(payload) || !isRecord(payload.usage)) return errorUsage(INVALID_GO)
 
-  const definitions = [
-    ["rolling", "5 hours"],
-    ["weekly", "Weekly"],
-    ["monthly", "Monthly"],
-  ] as const
   const windows: UsageWindow[] = []
 
-  for (const [id, label] of definitions) {
-    if (data.go[id] === undefined) continue
-    const window = goWindow(data, id, label)
-    if (!window) return errorUsage(INVALID_OPENCODE)
+  for (const [id, label] of GO_WINDOWS) {
+    const raw = payload.usage[id]
+    if (raw === undefined) continue
+    const window = goWindow(raw, id, label)
+    if (!window) return errorUsage(INVALID_GO)
     windows.push(window)
   }
 
   return windows.length > 0
     ? { status: "ready", message: null, windows }
-    : errorUsage(INVALID_OPENCODE)
+    : errorUsage(INVALID_GO)
 }
 
 function durationLabel(minutes: unknown, fallback: "Primary" | "Secondary"): string {

@@ -37,6 +37,14 @@ const outputSchema = {
 export const UsageLimitsRpc = Rpc.define({
   id: "usage-limits",
   methods: {
+    go: {
+      input: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+      output: outputSchema,
+    },
     chatgpt: {
       input: {
         type: "object",

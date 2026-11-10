@@ -1,3 +1,4 @@
+import { readGoUsage } from "./go.ts"
 import { readOpenAIUsage } from "./chatgpt.ts"
 import { unavailableUsage, type UsageResult } from "./normalize.ts"
 
@@ -40,4 +41,24 @@ export async function readActiveOpenAIUsage({
   }
 
   return readOpenAIUsage({ credential, fetchImpl, signal })
+}
+
+export async function readActiveGoUsage({
+  integration,
+  fetchImpl,
+  signal,
+}: ReadActiveOpenAIUsageInput): Promise<UsageResult> {
+  const connection = await integration.connection.active("opencode-go")
+  if (connection === undefined || connection === null) {
+    return unavailableUsage("Connect OpenCode Go with an API key to view usage limits.")
+  }
+
+  const credential = isRecord(connection)
+    ? await integration.connection.resolve(connection)
+    : undefined
+  if (credential === undefined || credential === null) {
+    return unavailableUsage("OpenCode Go credentials are unavailable. Reconnect the API key.")
+  }
+
+  return readGoUsage({ credential, fetchImpl, signal })
 }
