@@ -6,7 +6,7 @@ export const GO_HEADING_COLOR = YELLOW
 export const OPENAI_HEADING_COLOR = GREEN
 
 export function usageColor(usedPercent: number): string {
-  if (usedPercent >= 70) return GREEN
+  if (usedPercent >= 70) return RED
   if (usedPercent >= 30) return YELLOW
-  return RED
+  return GREEN
 }

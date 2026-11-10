@@ -10,9 +10,9 @@ import {
 } from "../src/color.ts"
 
 describe("usageColor", () => {
-  it("is green from 70% to 100%", () => {
+  it("is red from 70% to 100%", () => {
     for (const value of [70, 71, 85, 99.9, 100]) {
-      assert.equal(usageColor(value), GREEN, String(value))
+      assert.equal(usageColor(value), RED, String(value))
     }
   })
 
@@ -22,9 +22,9 @@ describe("usageColor", () => {
     }
   })
 
-  it("is red below 30%", () => {
+  it("is green below 30%", () => {
     for (const value of [0, 1, 15, 28, 29, 29.9]) {
-      assert.equal(usageColor(value), RED, String(value))
+      assert.equal(usageColor(value), GREEN, String(value))
     }
   })
 })
