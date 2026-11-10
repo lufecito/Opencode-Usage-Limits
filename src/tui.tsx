@@ -1,5 +1,6 @@
 import { For, Show, createSignal } from "solid-js"
 import { Plugin } from "@opencode/plugin/tui"
+import { GO_HEADING_COLOR, OPENAI_HEADING_COLOR, usageColor } from "./color.ts"
 import { errorUsage, type UsageResult } from "./normalize.ts"
 import { UsageLimitsRpc } from "./rpc.ts"
 
@@ -21,11 +22,12 @@ function resetLabel(resetsAt: number | null): string {
 
 function UsageSection(props: {
   readonly title: string
+  readonly headingColor: string
   readonly usage: UsageResult
 }) {
   return (
     <box flexDirection="column">
-      <text>{props.title}</text>
+      <text fg={props.headingColor}>{props.title}</text>
       <Show when={props.usage.status === "loading"}>
         <text>Loading...</text>
       </Show>
@@ -35,7 +37,7 @@ function UsageSection(props: {
       <For each={props.usage.windows}>
         {(window) => (
           <box flexDirection="column">
-            <text>
+            <text fg={usageColor(window.usedPercent)}>
               {`${window.label}: ${percentage(window.usedPercent)}% used${window.limited ? " - limit reached" : ""}`}
             </text>
             <text>{resetLabel(window.resetsAt)}</text>
@@ -98,9 +100,17 @@ export default Plugin.define({
       render: () => (
         <box flexDirection="column" paddingTop={1}>
           <text>Usage limits</text>
-          <UsageSection title="OpenCode Go" usage={go()} />
+          <UsageSection
+            title="OpenCode Go"
+            headingColor={GO_HEADING_COLOR}
+            usage={go()}
+          />
           <box paddingTop={1}>
-            <UsageSection title="OpenAI" usage={chatgpt()} />
+            <UsageSection
+              title="OpenAI"
+              headingColor={OPENAI_HEADING_COLOR}
+              usage={chatgpt()}
+            />
           </box>
         </box>
       ),
