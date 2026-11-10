@@ -45,14 +45,6 @@ export const UsageLimitsRpc = Rpc.define({
       },
       output: outputSchema,
     },
-    chatgpt: {
-      input: {
-        type: "object",
-        properties: {},
-        additionalProperties: false,
-      },
-      output: outputSchema,
-    },
   },
   events: {},
 })

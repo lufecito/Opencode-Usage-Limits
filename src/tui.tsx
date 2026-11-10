@@ -19,38 +19,10 @@ function resetLabel(resetsAt: number | null): string {
   return `Reset ${new Date(resetsAt).toLocaleString()}`
 }
 
-function ProviderUsage(props: {
-  readonly title: string
-  readonly usage: UsageResult
-}) {
-  return (
-    <box flexDirection="column" paddingTop={1}>
-      <text>{props.title}</text>
-      <Show when={props.usage.status === "loading"}>
-        <text>Loading...</text>
-      </Show>
-      <Show when={props.usage.message}>
-        <text>{props.usage.message}</text>
-      </Show>
-      <For each={props.usage.windows}>
-        {(window) => (
-          <box flexDirection="column">
-            <text>
-              {`${window.label}: ${percentage(window.usedPercent)}% used${window.limited ? " - limit reached" : ""}`}
-            </text>
-            <text>{resetLabel(window.resetsAt)}</text>
-          </box>
-        )}
-      </For>
-    </box>
-  )
-}
-
 export default Plugin.define({
   id: "usage-limits.tui",
   setup(context) {
     const [go, setGo] = createSignal<UsageResult>(loading)
-    const [chatgpt, setChatGPT] = createSignal<UsageResult>(loading)
     const location = context.location ?? context.data.location.default()
     const controller = new AbortController()
     let refreshing = false
@@ -69,24 +41,10 @@ export default Plugin.define({
       }
     }
 
-    const loadChatGPT = async () => {
-      try {
-        const usage = await context.client.rpc(UsageLimitsRpc).chatgpt(
-          {},
-          { location, signal: controller.signal },
-        )
-        setChatGPT(usage)
-      } catch {
-        if (!controller.signal.aborted) {
-          setChatGPT(errorUsage("Could not load OpenAI limits."))
-        }
-      }
-    }
-
     const refresh = async () => {
       if (refreshing || controller.signal.aborted) return
       refreshing = true
-      await Promise.allSettled([loadGo(), loadChatGPT()])
+      await loadGo()
       refreshing = false
     }
 
@@ -96,10 +54,25 @@ export default Plugin.define({
     const unregister = context.ui.slot({
       append: "sidebar.content",
       render: () => (
-        <box flexDirection="column">
+        <box flexDirection="column" paddingTop={1}>
           <text>Usage limits</text>
-          <ProviderUsage title="OpenCode Go" usage={go()} />
-          <ProviderUsage title="OpenAI" usage={chatgpt()} />
+          <text>OpenCode Go</text>
+          <Show when={go().status === "loading"}>
+            <text>Loading...</text>
+          </Show>
+          <Show when={go().message}>
+            <text>{go().message}</text>
+          </Show>
+          <For each={go().windows}>
+            {(window) => (
+              <box flexDirection="column">
+                <text>
+                  {`${window.label}: ${percentage(window.usedPercent)}% used${window.limited ? " - limit reached" : ""}`}
+                </text>
+                <text>{resetLabel(window.resetsAt)}</text>
+              </box>
+            )}
+          </For>
         </box>
       ),
     })
