@@ -99,7 +99,9 @@ export default Plugin.define({
         <box flexDirection="column" paddingTop={1}>
           <text>Usage limits</text>
           <UsageSection title="OpenCode Go" usage={go()} />
-          <UsageSection title="OpenAI" usage={chatgpt()} />
+          <box paddingTop={1}>
+            <UsageSection title="OpenAI" usage={chatgpt()} />
+          </box>
         </box>
       ),
     })
