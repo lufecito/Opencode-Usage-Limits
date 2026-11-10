@@ -16,7 +16,7 @@ Branch/delivery: `feat/usage-limits-sidebar` in `lufecito/Opencode-Usage-Limits`
 - [x] T3 (S1-S3) inline — TUI sidebar, OpenCode Go client integration, lifecycle cleanup, documentation, and runtime load check; `tui.tsx`, `README.md`, commit `e11ce44` and this docs commit.
 - [x] T4 (S3) inline — replace the Console-only native Go endpoint with the Go API-key usage endpoint; `go.ts`, `normalize.ts`, `service.ts`, `rpc.ts`, `index.ts`, `tui.tsx`, `test/go.test.ts`, commit `e6f15d7`.
 - [x] T5 (S1, S3) inline — remove every OpenAI/ChatGPT provider path, leaving only OpenCode Go; deleted `chatgpt.ts`, `test/chatgpt.test.ts`, `test/normalize.test.ts`, trimmed `normalize.ts`, `service.ts`, `rpc.ts`, `index.ts`, `tui.tsx`, `test/service.test.ts`, `README.md`, `package.json`; commit `be99b8c`.
-- [x] T6 (S1, S3) inline — restore OpenAI ChatGPT usage for the legacy Codex login and parse the current `rate_limit.primary_window`/`secondary_window` contract; `chatgpt.ts`, `normalize.ts`, `service.ts`, `rpc.ts`, `index.ts`, `tui.tsx`, `test/openai.test.ts`, `test/service.test.ts`, `README.md`, `package.json`; commit pending.
+- [x] T6 (S1, S3) inline — restore OpenAI ChatGPT usage for the legacy Codex login and parse the current `rate_limit.primary_window`/`secondary_window` contract; `chatgpt.ts`, `normalize.ts`, `service.ts`, `rpc.ts`, `index.ts`, `tui.tsx`, `test/openai.test.ts`, `test/service.test.ts`, `README.md`, `package.json`; commit `fac706e`.
 
 ## Log
 
@@ -45,4 +45,7 @@ Branch/delivery: `feat/usage-limits-sidebar` in `lufecito/Opencode-Usage-Limits`
 - T6 RED: `test/openai.test.ts` failed with `ERR_MODULE_NOT_FOUND` before the adapter and normalizer were restored.
 - T6 GREEN: `npm test` → 21 tests, 21 pass, 0 fail.
 - T6 runtime: `usage-limits` active with `server`, `tui`, `rpc`; `POST /api/rpc/usage-limits/chatgpt` returns primary 100% limited (5 hours) and weekly 53%; `POST /api/rpc/usage-limits/go` still returns rolling 100% limited, weekly 40%, monthly 20%.
+- T6 independent verification (read-only, fresh scratch copy of `fac706e`): PASS. `npm test` 21/21; 15/15 spec probes; 14/14 candidate-vs-baseline Go scenarios identical; `src/go.ts` byte-identical to baseline; `src/chatgpt.ts` byte-identical to the previously runtime-verified `bdde44c` adapter; no `console.*`, fs, or env use in `src/`; output schema validated against real normalize output. No blockers.
+- T6 advisories resolved: the stale "commit pending" line and the under-guiding 401 message were fixed (`834ea34`, message now points to the legacy Codex login). `reset_after_seconds`-only payloads, the extra TUI wrapper box, and the missing typecheck tooling were accepted as non-blocking; the documented contract always supplies `reset_at`.
+- T6 follow-up test coverage added from the verifier probes: legacy `rate_limits_by_limit_id`, decoy metadata URLs, and the 0/99.9/100 limit boundary. `npm test` → 22 tests, 22 pass, 0 fail.
 - Next: review the local branch. Pushing, opening a pull request, and merging remain the user's decision.
