@@ -1,13 +1,14 @@
 # OpenCode usage limits sidebar
 
 Objective: add a global OpenCode TUI plugin for OpenCode Go and OpenAI ChatGPT usage limits.
-Branch/delivery: `feat/usage-limits-sidebar` in `lufecito/Opencode-Usage-Limits`; local work-unit commits only, no push. Test runner: Node.js built-in test runner with TypeScript type stripping.
+Branch/delivery: `main` and `feat/usage-limits-sidebar` in `lufecito/Opencode-Usage-Limits`; user authorized the push on 2026-11-11. Test runner: Node.js built-in test runner with TypeScript type stripping; `sh` for the installer.
 
 ## Specs
 
 - S1: "que me muestre los consumos cada 5hrs, semanal y mensual." Display OpenCode Go rolling, weekly, and monthly meters with used percentage, limited state, and reset time. Display the primary and secondary OpenAI ChatGPT windows supplied by the backend; do not invent a monthly OpenAI meter when none is supplied. Verify deterministic view models.
 - S2: "Idealmente y si el proyecto lo permite, que se posicione en la barra lateral derecha." Append the plugin UI to OpenCode TUI's `sidebar.content` slot and verify that OpenCode loads the plugin.
 - S3: "elimina OpenAI, no es necesario" (superseded by L7) Read OpenCode Go through `GET https://opencode.ai/zen/go/v1/usage` with the active `opencode-go` API key behind the server RPC. Read OpenAI ChatGPT usage through the active OpenAI OAuth credential and the fixed `https://chatgpt.com/backend-api/wham/usage` endpoint behind the same RPC. Only legacy Codex login tokens (`chatgpt-browser`/`chatgpt-headless`) report plan usage; token-sharing tokens are rejected by OpenAI with HTTP 401 `rejected_by_access_enforcement`. Never persist or log credentials. Verify parsing, authentication failures, malformed responses, cancellation, and plugin cleanup.
+- S4: "adáptalo para que sea usable en un computador que no tiene privilegios de administrador". Install and run with no administrator privileges, no root, and no `npm install`: copy the plugin into the global plugin directory `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/opencode-usage-limits` and let the existing discovery layout load it, or keep an explicit path entry. Ship an installer for both cases plus removal. Verify the plugin loads from the global directory with no config entry and the same `server`/`tui`/`rpc` features.
 
 ## Tasks
 
@@ -17,6 +18,7 @@ Branch/delivery: `feat/usage-limits-sidebar` in `lufecito/Opencode-Usage-Limits`
 - [x] T4 (S3) inline — replace the Console-only native Go endpoint with the Go API-key usage endpoint; `go.ts`, `normalize.ts`, `service.ts`, `rpc.ts`, `index.ts`, `tui.tsx`, `test/go.test.ts`, commit `e6f15d7`.
 - [x] T5 (S1, S3) inline — remove every OpenAI/ChatGPT provider path, leaving only OpenCode Go; deleted `chatgpt.ts`, `test/chatgpt.test.ts`, `test/normalize.test.ts`, trimmed `normalize.ts`, `service.ts`, `rpc.ts`, `index.ts`, `tui.tsx`, `test/service.test.ts`, `README.md`, `package.json`; commit `be99b8c`.
 - [x] T6 (S1, S3) inline — restore OpenAI ChatGPT usage for the legacy Codex login and parse the current `rate_limit.primary_window`/`secondary_window` contract; `chatgpt.ts`, `normalize.ts`, `service.ts`, `rpc.ts`, `index.ts`, `tui.tsx`, `test/openai.test.ts`, `test/service.test.ts`, `README.md`, `package.json`; commit `fac706e`.
+- [x] T7 (S4) inline — privilege-free installation: `install.sh` (copy into the global plugin directory, `--uninstall`, no sudo, no npm), README no-admin section, verified global discovery load.
 
 ## Log
 
@@ -49,3 +51,10 @@ Branch/delivery: `feat/usage-limits-sidebar` in `lufecito/Opencode-Usage-Limits`
 - T6 advisories resolved: the stale "commit pending" line and the under-guiding 401 message were fixed (`834ea34`, message now points to the legacy Codex login). `reset_after_seconds`-only payloads, the extra TUI wrapper box, and the missing typecheck tooling were accepted as non-blocking; the documented contract always supplies `reset_at`.
 - T6 follow-up test coverage added from the verifier probes: legacy `rate_limits_by_limit_id`, decoy metadata URLs, and the 0/99.9/100 limit boundary. `npm test` → 22 tests, 22 pass, 0 fail.
 - Next: review the local branch. Pushing, opening a pull request, and merging remain the user's decision.
+- L8 (2026-11-11): "Pushiemos ambas, eso sí, adáptalo para que sea usable en un computador que no tiene privilegios de administrador, se puede?" Push authorized for `main` and `feat/usage-limits-sidebar`; both pushed at `df7c4b2`.
+- T7 cause: the working machine loads the plugin through an absolute `plugins` entry and `/usr/bin/opencode` is root-owned, so the previous instructions implied an elevated setup. `src/` uses no `fs`, `process.env`, or `child_process`, and the package has no installed runtime dependencies, so nothing in the plugin needs elevation.
+- T7 mechanism: OpenCode discovers immediate plugin package directories under `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins` with no `opencode.json` entry (documented in the V2 Configure plugins guide). Verified empirically with a throwaway package directory that appeared in `GET /api/plugin`.
+- T7 RED: the first scratch install only copied `package.json` and `README.md`; the verification `find` was bounded at depth 4 and hid `src/`. Re-run without the depth bound listed all eight `src/` files, so the installer was correct and the probe was wrong.
+- T7 GREEN: `install.sh` on a scratch `XDG_CONFIG_HOME` copied `package.json`, `README.md`, and all eight `src` files, re-ran without error, and `--uninstall` removed the directory; `sh -n install.sh` clean.
+- T7 runtime: temporary install into the real global plugin directory with the `plugins` entry removed produced `{"id":"usage-limits","source":{"path":".../.config/opencode/plugins/opencode-usage-limits"},"features":{"server":true,"tui":true,"rpc":true},"state":{"status":"active"}}`. The original config entry and directory layout were restored afterwards and re-verified as active from `/home/lufecito/Opencode-Usage-Limits`.
+- Next: `npm test` suite, commit, and push both branches.

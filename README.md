@@ -11,13 +11,36 @@ The panel refreshes every 60 seconds and after a session usage event. Missing da
 
 ## Requirements
 
-- OpenCode 2.2.5 or newer.
+- OpenCode 2.2.5 or newer, installed by you or already provided by an administrator. Only the plugin installation is described here, and it never requires elevation.
 - An OpenCode Go API key. The plugin reads the active `opencode-go` credential; a Console workspace sign-in is not required.
 - OpenAI ChatGPT sign-in through the **legacy Codex login** (`Codex browser` or `Codex device code`). The newer `Sign in with ChatGPT` token-sharing login is not accepted by OpenAI's usage endpoint.
 
 ## Install
 
-Add the repository path to the global `~/.config/opencode/opencode.json`:
+The plugin needs no administrator privileges, no root access, and no `npm install`. It is a plain directory that reads credentials through OpenCode's public plugin API and writes nothing to disk.
+
+### Without administrator privileges
+
+OpenCode loads package directories from its global plugin directory automatically. Copy the plugin there and it loads on the next start, with no configuration entry:
+
+```sh
+git clone https://github.com/lufecito/Opencode-Usage-Limits.git \
+  "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/opencode-usage-limits"
+```
+
+From an existing checkout, run the installer instead:
+
+```sh
+./install.sh
+```
+
+The installer copies `package.json`, `README.md`, and `src/` into `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/opencode-usage-limits`, updates an existing git checkout with `git pull --ff-only`, and never uses `sudo`. Remove the plugin with `./install.sh --uninstall`.
+
+Verify the load with `opencode api get /api/plugin`; the `usage-limits` entry must show `"server": true`, `"tui": true`, and `"rpc": true`. If it is missing, run `opencode service restart`.
+
+### Explicit path in `opencode.json`
+
+An explicit entry also works when the plugin lives outside the global plugin directory. Add the repository path to the global `~/.config/opencode/opencode.json`:
 
 ```jsonc
 {
@@ -25,6 +48,8 @@ Add the repository path to the global `~/.config/opencode/opencode.json`:
   "plugins": ["/absolute/path/to/Opencode-Usage-Limits"]
 }
 ```
+
+Do not use both installation methods at once; remove the `plugins` entry before moving the plugin into the global plugin directory.
 
 The package exports all three plugin parts:
 
