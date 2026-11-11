@@ -1,3 +1,12 @@
 node_modules/
 *.log
 .DS_Store
+
+# Local credentials and secrets must never be committed.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+credentials.json
+secrets.json
